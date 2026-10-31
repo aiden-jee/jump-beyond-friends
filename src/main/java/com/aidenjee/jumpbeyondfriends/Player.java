@@ -1,7 +1,6 @@
 package com.aidenjee.jumpbeyondfriends;
 
-import java.util.List;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,7 +14,27 @@ public class Player {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 50)
     private String name;
 
-    private List<Rsvp> rsvps;
+    protected Player() {}
+
+    public Player(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Player name cannot be blank");
+        }
+        if (name.length() > 50) {
+            throw new IllegalArgumentException("Player name cannot exceed 50 characters");
+        }
+
+        this.name = name;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
 }
