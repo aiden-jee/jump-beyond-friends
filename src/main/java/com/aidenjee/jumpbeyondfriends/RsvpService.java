@@ -47,18 +47,18 @@ public class RsvpService {
     }
 
     public void updateRsvpStatus(Long playerId, Long gameId, RsvpStatus status) {
+        Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
+            .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
         Game game = gameRepository.findById(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         if (game.getStatus() == GameStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot RSVP to a canceled game");
+            throw new IllegalStateException("Cannot RSVP to a cancelled game");
         }
 
-        Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
-            .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
         rsvp.changeStatus(status);
     }
 
-    public void deleteRsvpStatus(Long playerId, Long gameId) {
+    public void deleteRsvp(Long playerId, Long gameId) {
         Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
             .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
         rsvpRepository.delete(rsvp);

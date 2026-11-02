@@ -74,7 +74,7 @@ public class RsvpServiceTest {
         );
     }
 
-    @Test public void duplicateRsvpShouldThrowException() {
+    @Test public void createDuplicateRsvpShouldThrowException() {
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(true);
         assertThrows(
@@ -85,7 +85,7 @@ public class RsvpServiceTest {
     }
 
     @Test 
-    public void invalidPlayerShouldThrowException() {
+    public void createRsvpInvalidPlayerShouldThrowException() {
         when(playerRepository.findById(1L)).thenReturn(Optional.empty());
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(false);
@@ -98,7 +98,7 @@ public class RsvpServiceTest {
     }
 
     @Test 
-    public void invalidGameShouldThrowException() {
+    public void createRsvpInvalidGameShouldThrowException() {
         when(playerRepository.findById(1L)).thenReturn(Optional.of(createPlayer("Aiden", 1L)));
         when(gameRepository.findById(2L)).thenReturn(Optional.empty());
 
@@ -110,5 +110,97 @@ public class RsvpServiceTest {
         );
         assertEquals("Game does not exist!", e.getMessage());
         verify(rsvpRepository, never()).save(any(Rsvp.class));
+    }
+
+    @Test 
+    public void updateRsvpShouldUpdateRsvpWithCorrectPlayerGameAndStatus() {
+        Player player = createPlayer("RSVP Test", 1L);
+
+        Game game = createGame(2L);
+        when(gameRepository.findById(2L))
+            .thenReturn(Optional.of(game));
+
+        Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
+        when(rsvpRepository.findById(new RsvpId(1L, 2L)))
+            .thenReturn(Optional.of(rsvp));
+        
+        rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING);
+        assertEquals(RsvpStatus.NOT_GOING, rsvp.getStatus());
+        assertEquals(new RsvpId(1L, 2L), rsvp.getId());
+    }
+
+    @Test
+    public void updateRsvpInvalidGameShouldThrowException() {
+        Player player = createPlayer("RSVP Test", 1L);
+
+        Game game = createGame(2L);
+        when(gameRepository.findById(2L))
+            .thenReturn(Optional.empty());
+
+        Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
+        when(rsvpRepository.findById(new RsvpId(1L, 2L)))
+            .thenReturn(Optional.of(rsvp));
+        
+        NoSuchElementException e = assertThrows(
+            NoSuchElementException.class, 
+            () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
+        assertEquals("Game does not exist!", e.getMessage());
+        assertEquals(RsvpStatus.GOING, rsvp.getStatus());
+    }
+
+    @Test 
+    public void cannotUpdateRsvpCancelledGame() {
+        Player player = createPlayer("RSVP Test", 1L);
+
+        Game game = createGame(2L);
+        when(gameRepository.findById(2L))
+            .thenReturn(Optional.of(game));
+
+        Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
+        when(rsvpRepository.findById(new RsvpId(1L, 2L)))
+            .thenReturn(Optional.of(rsvp));
+        
+        game.setStatus(GameStatus.CANCELLED);
+        
+        IllegalStateException e = assertThrows(
+            IllegalStateException.class, 
+            () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
+        assertEquals("Cannot RSVP to a cancelled game", e.getMessage());
+        assertEquals(RsvpStatus.GOING, rsvp.getStatus());
+    }
+
+    @Test 
+    public void cannotUpdateNonExistantRsvp() {
+        when(rsvpRepository.findById(new RsvpId(1L, 2L)))
+            .thenReturn(Optional.empty());
+        
+        NoSuchElementException e = assertThrows(
+            NoSuchElementException.class, 
+            () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
+        assertEquals("RSVP does not exist!", e.getMessage());
+    }
+
+    @Test
+    void deleteExistingRsvpShouldCallRepositoryDelete() {
+        Player player = createPlayer("RSVP Test", 1L);
+        Game game = createGame(2L);
+        Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
+
+        when(rsvpRepository.findById(new RsvpId(1L, 2L)))
+            .thenReturn(Optional.of(rsvp));
+        rsvpService.deleteRsvp(1L, 2L);
+        verify(rsvpRepository).delete(rsvp);
+    }
+
+    @Test 
+    public void updateNonexistentRsvpShouldThrowException() {
+        when(rsvpRepository.findById(new RsvpId(1L, 2L)))
+            .thenReturn(Optional.empty());
+        
+        NoSuchElementException e = assertThrows(
+            NoSuchElementException.class, 
+            () -> rsvpService.deleteRsvp(1L, 2L));
+        assertEquals("RSVP does not exist!", e.getMessage());
+        verify(rsvpRepository, never()).delete(any(Rsvp.class));
     }
 }
