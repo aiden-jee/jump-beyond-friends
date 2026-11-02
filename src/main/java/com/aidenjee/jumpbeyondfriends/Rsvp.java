@@ -44,6 +44,10 @@ public class Rsvp {
         return id;
     }
 
+    public RsvpStatus getStatus() {
+        return status;
+    }
+
     public void changeStatus(RsvpStatus status) {
         this.status = status;
     }

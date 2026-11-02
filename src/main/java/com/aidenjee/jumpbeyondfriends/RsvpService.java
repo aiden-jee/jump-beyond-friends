@@ -1,0 +1,66 @@
+package com.aidenjee.jumpbeyondfriends;
+
+import java.util.NoSuchElementException;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@Transactional
+public class RsvpService {
+
+    private final RsvpRepository rsvpRepository;
+    private final PlayerRepository playerRepository;
+    private final GameRepository gameRepository;
+
+    public RsvpService(
+            RsvpRepository rsvpRepository,
+            PlayerRepository playerRepository,
+            GameRepository gameRepository) {
+        this.rsvpRepository = rsvpRepository;
+        this.playerRepository = playerRepository;
+        this.gameRepository = gameRepository;
+    }
+
+    // methods
+    /**
+     * Create Rsvp for the specified player id and game id with the given status. 
+     * Throws an exception when the Rsvp already exists.
+     */
+    public void createRsvp(Long playerId, Long gameId, RsvpStatus status) {
+        if (rsvpRepository.existsById(new RsvpId(playerId, gameId))) {
+            throw new IllegalStateException("RSVP already exists");
+        }
+
+        Player player = playerRepository.findById(playerId)
+            .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
+
+        if (game.getStatus() == GameStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot RSVP to a canceled game");
+        }
+
+        Rsvp rsvp = new Rsvp(player, game, status);
+        rsvpRepository.save(rsvp);
+    }
+
+    public void updateRsvpStatus(Long playerId, Long gameId, RsvpStatus status) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
+        if (game.getStatus() == GameStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot RSVP to a canceled game");
+        }
+
+        Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
+            .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
+        rsvp.changeStatus(status);
+    }
+
+    public void deleteRsvpStatus(Long playerId, Long gameId) {
+        Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
+            .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
+        rsvpRepository.delete(rsvp);
+    }
+}
