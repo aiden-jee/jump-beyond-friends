@@ -1,5 +1,6 @@
 package com.aidenjee.jumpbeyondfriends;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
@@ -62,5 +63,21 @@ public class RsvpService {
         Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
             .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
         rsvpRepository.delete(rsvp);
+    }
+
+    public List<PlayerRsvpSummary> getRsvpsForGameId(Long gameId) {
+        if (!gameRepository.existsById(gameId)) {
+            throw new IllegalStateException("Game does not exist!");
+        }
+        List<PlayerRsvpSummary> rsvps = rsvpRepository.findSummariesByGameId(gameId);
+        return rsvps;
+    }
+
+    public List<GameRsvpSummary> getRsvpsForPlayerId(Long playerId) {
+        if (!playerRepository.existsById(playerId)) {
+            throw new IllegalStateException("Player does not exist!");
+        }
+        List<GameRsvpSummary> rsvps = rsvpRepository.findSummariesByPlayerId(playerId);
+        return rsvps;
     }
 }
