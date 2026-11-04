@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.game;
 
 public final class AppConstants {
     // Prevent instantiation

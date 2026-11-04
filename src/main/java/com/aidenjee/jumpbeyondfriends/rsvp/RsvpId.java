@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.rsvp;
 
 import java.io.Serializable;
 import java.util.Objects;

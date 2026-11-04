@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.rsvp;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ public interface RsvpRepository extends JpaRepository<Rsvp, RsvpId>{
         long countByGame_IdAndStatus(Long gameId, RsvpStatus status);
 
         @Query("""
-                SELECT new com.aidenjee.jumpbeyondfriends.PlayerRsvpSummary(
+                SELECT new com.aidenjee.jumpbeyondfriends.rsvp.PlayerRsvpSummary(
                         r.id.playerId,
                         r.status
                 )
@@ -23,7 +23,7 @@ public interface RsvpRepository extends JpaRepository<Rsvp, RsvpId>{
         List<PlayerRsvpSummary> findSummariesByGameId(@Param("gameId") Long gameId);
 
         @Query("""
-                SELECT new com.aidenjee.jumpbeyondfriends.GameRsvpSummary(
+                SELECT new com.aidenjee.jumpbeyondfriends.rsvp.GameRsvpSummary(
                         r.id.gameId,
                         r.status
                 )

@@ -1,4 +1,7 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.game;
+
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
 
 import java.util.NoSuchElementException;
 

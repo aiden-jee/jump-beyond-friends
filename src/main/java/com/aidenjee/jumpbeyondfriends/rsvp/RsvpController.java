@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.rsvp;
 
 import java.util.List;
 
@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.aidenjee.jumpbeyondfriends.RsvpController.GameRsvpResponse;
-import com.aidenjee.jumpbeyondfriends.RsvpController.PlayerRsvpResponse;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

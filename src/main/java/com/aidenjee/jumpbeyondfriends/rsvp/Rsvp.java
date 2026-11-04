@@ -1,4 +1,7 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.rsvp;
+
+import com.aidenjee.jumpbeyondfriends.game.Game;
+import com.aidenjee.jumpbeyondfriends.player.Player;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;

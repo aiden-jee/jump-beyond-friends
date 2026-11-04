@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.game;
 
 import java.time.Instant;
 
@@ -36,7 +36,7 @@ public class Game {
     protected Game() {
     }
 
-    Game(Instant startTime, Instant endTime) {
+    public Game(Instant startTime, Instant endTime) {
         if (startTime == null || endTime == null) {
             throw new IllegalArgumentException(
                 "Start or End Time cannot be null"

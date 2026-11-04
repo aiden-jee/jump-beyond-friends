@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.player;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

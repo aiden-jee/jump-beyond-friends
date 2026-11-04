@@ -1,4 +1,4 @@
-package com.aidenjee.jumpbeyondfriends;
+package com.aidenjee.jumpbeyondfriends.player;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,5 +1,7 @@
 package com.aidenjee.jumpbeyondfriends;
 
+import com.aidenjee.jumpbeyondfriends.player.Player;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
