@@ -1,16 +1,15 @@
 package com.aidenjee.jumpbeyondfriends.game;
 
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
-
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
+
 import jakarta.transaction.Transactional;
 
 @Service 
-@Transactional
 public class GameService {
     private final GameRepository gameRepository;
     private final RsvpRepository rsvpRepository;
@@ -43,8 +42,9 @@ public class GameService {
         return rsvpRepository.countByGame_IdAndStatus(gameId, RsvpStatus.GOING) >= game.getThreshold();
     }
 
+    @Transactional 
     public void bookGame(Long gameId) {
-        Game game = gameRepository.findById(gameId)
+        Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         if (game.getStatus() != GameStatus.PROPOSED) {
             throw new IllegalStateException("Game state must be proposed");
@@ -52,8 +52,9 @@ public class GameService {
         game.setStatus(GameStatus.BOOKED);
     }
 
+    @Transactional 
     public void cancelGame(Long gameId) {
-        Game game = gameRepository.findById(gameId)
+        Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         game.setStatus(GameStatus.CANCELLED);
     }

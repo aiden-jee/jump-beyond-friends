@@ -1,20 +1,19 @@
 package com.aidenjee.jumpbeyondfriends.rsvp;
 
-import com.aidenjee.jumpbeyondfriends.game.Game;
-import com.aidenjee.jumpbeyondfriends.game.GameRepository;
-import com.aidenjee.jumpbeyondfriends.game.GameStatus;
-import com.aidenjee.jumpbeyondfriends.player.Player;
-import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
-
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.aidenjee.jumpbeyondfriends.game.Game;
+import com.aidenjee.jumpbeyondfriends.game.GameRepository;
+import com.aidenjee.jumpbeyondfriends.game.GameStatus;
+import com.aidenjee.jumpbeyondfriends.player.Player;
+import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
+
 
 @Service
-@Transactional
 public class RsvpService {
 
     private final RsvpRepository rsvpRepository;
@@ -35,6 +34,7 @@ public class RsvpService {
      * Create Rsvp for the specified player id and game id with the given status. 
      * Throws an exception when the Rsvp already exists.
      */
+    @Transactional 
     public void createRsvp(Long playerId, Long gameId, RsvpStatus status) {
         if (rsvpRepository.existsById(new RsvpId(playerId, gameId))) {
             throw new IllegalStateException("RSVP already exists");
@@ -42,7 +42,7 @@ public class RsvpService {
 
         Player player = playerRepository.findById(playerId)
             .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
-        Game game = gameRepository.findById(gameId)
+        Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
 
         if (game.getStatus() == GameStatus.CANCELLED) {
@@ -53,10 +53,11 @@ public class RsvpService {
         rsvpRepository.save(rsvp);
     }
 
+    @Transactional 
     public void updateRsvpStatus(Long playerId, Long gameId, RsvpStatus status) {
         Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
             .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
-        Game game = gameRepository.findById(gameId)
+        Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         if (game.getStatus() == GameStatus.CANCELLED) {
             throw new IllegalStateException("Cannot RSVP to a cancelled game");
@@ -65,7 +66,11 @@ public class RsvpService {
         rsvp.changeStatus(status);
     }
 
+    @Transactional 
     public void deleteRsvp(Long playerId, Long gameId) {
+        // to lock game row, do not actually need the game data
+        gameRepository.findByIdForWrite(gameId)
+            .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
             .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
         rsvpRepository.delete(rsvp);

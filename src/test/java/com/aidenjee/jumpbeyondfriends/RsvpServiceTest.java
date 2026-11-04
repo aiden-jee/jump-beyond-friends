@@ -1,16 +1,5 @@
 package com.aidenjee.jumpbeyondfriends;
 
-import com.aidenjee.jumpbeyondfriends.game.Game;
-import com.aidenjee.jumpbeyondfriends.game.GameRepository;
-import com.aidenjee.jumpbeyondfriends.game.GameStatus;
-import com.aidenjee.jumpbeyondfriends.player.Player;
-import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
-import com.aidenjee.jumpbeyondfriends.rsvp.Rsvp;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpId;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpService;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.NoSuchElementException;
@@ -29,6 +18,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.aidenjee.jumpbeyondfriends.game.Game;
+import com.aidenjee.jumpbeyondfriends.game.GameRepository;
+import com.aidenjee.jumpbeyondfriends.game.GameStatus;
+import com.aidenjee.jumpbeyondfriends.player.Player;
+import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
+import com.aidenjee.jumpbeyondfriends.rsvp.Rsvp;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpId;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpService;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
 
 @ExtendWith(MockitoExtension.class)
 public class RsvpServiceTest {
@@ -64,7 +64,7 @@ public class RsvpServiceTest {
             .thenReturn(Optional.of(player));
 
         Game game = createGame(2L);
-        when(gameRepository.findById(2L))
+        when(gameRepository.findByIdForWrite(2L))
             .thenReturn(Optional.of(game));
 
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
@@ -111,7 +111,7 @@ public class RsvpServiceTest {
     @Test 
     public void createRsvpInvalidGameShouldThrowException() {
         when(playerRepository.findById(1L)).thenReturn(Optional.of(createPlayer("Aiden", 1L)));
-        when(gameRepository.findById(2L)).thenReturn(Optional.empty());
+        when(gameRepository.findByIdForWrite(2L)).thenReturn(Optional.empty());
 
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(false);
@@ -128,7 +128,7 @@ public class RsvpServiceTest {
         Player player = createPlayer("RSVP Test", 1L);
 
         Game game = createGame(2L);
-        when(gameRepository.findById(2L))
+        when(gameRepository.findByIdForWrite(2L))
             .thenReturn(Optional.of(game));
 
         Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
@@ -145,7 +145,7 @@ public class RsvpServiceTest {
         Player player = createPlayer("RSVP Test", 1L);
 
         Game game = createGame(2L);
-        when(gameRepository.findById(2L))
+        when(gameRepository.findByIdForWrite(2L))
             .thenReturn(Optional.empty());
 
         Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
@@ -164,7 +164,7 @@ public class RsvpServiceTest {
         Player player = createPlayer("RSVP Test", 1L);
 
         Game game = createGame(2L);
-        when(gameRepository.findById(2L))
+        when(gameRepository.findByIdForWrite(2L))
             .thenReturn(Optional.of(game));
 
         Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
@@ -197,6 +197,8 @@ public class RsvpServiceTest {
         Game game = createGame(2L);
         Rsvp rsvp = new Rsvp(player, game, RsvpStatus.GOING);
 
+        when(gameRepository.findByIdForWrite(2L))
+                    .thenReturn(Optional.of(game));
         when(rsvpRepository.findById(new RsvpId(1L, 2L)))
             .thenReturn(Optional.of(rsvp));
         rsvpService.deleteRsvp(1L, 2L);
@@ -205,6 +207,9 @@ public class RsvpServiceTest {
 
     @Test 
     public void updateNonexistentRsvpShouldThrowException() {
+        Game game = createGame(2L);
+        when(gameRepository.findByIdForWrite(2L))
+                    .thenReturn(Optional.of(game));
         when(rsvpRepository.findById(new RsvpId(1L, 2L)))
             .thenReturn(Optional.empty());
         
