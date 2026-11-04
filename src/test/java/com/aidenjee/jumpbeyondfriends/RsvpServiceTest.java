@@ -86,6 +86,9 @@ public class RsvpServiceTest {
     }
 
     @Test public void createDuplicateRsvpShouldThrowException() {
+        when(gameRepository.findByIdForWrite(2L)).thenReturn(Optional.of(createGame(2L)));
+        when(playerRepository.findById(1L)).thenReturn(Optional.of(createPlayer("Test", 1L)));
+
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(true);
         assertThrows(
@@ -98,8 +101,8 @@ public class RsvpServiceTest {
     @Test 
     public void createRsvpInvalidPlayerShouldThrowException() {
         when(playerRepository.findById(1L)).thenReturn(Optional.empty());
-        when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
-            .thenReturn(false);
+        when(gameRepository.findByIdForWrite(2L)).thenReturn(Optional.of(createGame(2L)));
+
         NoSuchElementException e = assertThrows(
             NoSuchElementException.class,
             () -> rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING)
@@ -110,11 +113,8 @@ public class RsvpServiceTest {
 
     @Test 
     public void createRsvpInvalidGameShouldThrowException() {
-        when(playerRepository.findById(1L)).thenReturn(Optional.of(createPlayer("Aiden", 1L)));
         when(gameRepository.findByIdForWrite(2L)).thenReturn(Optional.empty());
 
-        when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
-            .thenReturn(false);
         NoSuchElementException e = assertThrows(
             NoSuchElementException.class,
             () -> rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING)

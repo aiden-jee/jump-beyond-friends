@@ -36,14 +36,15 @@ public class RsvpService {
      */
     @Transactional 
     public void createRsvp(Long playerId, Long gameId, RsvpStatus status) {
+        Game game = gameRepository.findByIdForWrite(gameId)
+            .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
+        Player player = playerRepository.findById(playerId)
+            .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
+
         if (rsvpRepository.existsById(new RsvpId(playerId, gameId))) {
             throw new IllegalStateException("RSVP already exists");
         }
 
-        Player player = playerRepository.findById(playerId)
-            .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
-        Game game = gameRepository.findByIdForWrite(gameId)
-            .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
 
         if (game.getStatus() == GameStatus.CANCELLED) {
             throw new IllegalStateException("Cannot RSVP to a canceled game");
