@@ -26,6 +26,8 @@ public class RsvpController {
 
     public record CreateRsvpRequest(@NotNull Long playerId, @NotNull RsvpStatus status) {}
 
+    public record PatchRsvpRequest(@NotNull RsvpStatus status) {}
+
     public record PlayerRsvpResponse(@NotNull Long playerId, @NotNull RsvpStatus status) {}
 
     public record GameRsvpResponse(@NotNull Long gameId, @NotNull RsvpStatus status) {}
@@ -63,7 +65,7 @@ public class RsvpController {
 
     @PatchMapping("/api/games/{gameId}/rsvps/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void patchRsvp(@PathVariable Long gameId, @PathVariable Long playerId, @Valid @RequestBody RsvpStatus status) {
-        rsvpService.updateRsvpStatus(playerId, gameId, status);
+    public void patchRsvp(@PathVariable Long gameId, @PathVariable Long playerId, @Valid @RequestBody PatchRsvpRequest req) {
+        rsvpService.updateRsvpStatus(playerId, gameId, req.status());
     } 
 }
