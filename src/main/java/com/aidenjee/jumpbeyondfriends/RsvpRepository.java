@@ -10,6 +10,8 @@ public interface RsvpRepository extends JpaRepository<Rsvp, RsvpId>{
         List<Rsvp> findByGame_Id(Long gameId);
         List<Rsvp> findByPlayer_Id(Long playerId);
 
+        long countByGame_IdAndStatus(Long gameId, RsvpStatus status);
+
         @Query("""
                 SELECT new com.aidenjee.jumpbeyondfriends.PlayerRsvpSummary(
                         r.id.playerId,
@@ -29,4 +31,6 @@ public interface RsvpRepository extends JpaRepository<Rsvp, RsvpId>{
                 WHERE r.id.playerId = :playerId
                 """)
         List<GameRsvpSummary> findSummariesByPlayerId(@Param("playerId") Long playerId);
+
+
 }
