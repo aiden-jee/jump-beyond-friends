@@ -17,6 +17,13 @@ public class GameService {
         this.rsvpRepository = rsvpRepository;
     }
 
+    public GameSummary getGameSummary(Long gameId) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
+        long goingCount = rsvpRepository.countByGame_IdAndStatus(gameId, RsvpStatus.GOING);
+        return new GameSummary(game, goingCount);
+    }
+
     public long countRsvpsByStatus(Long gameId, RsvpStatus status) {
         if (!gameRepository.existsById(gameId)) {
             throw new NoSuchElementException("Game does not exist!");
@@ -42,7 +49,7 @@ public class GameService {
         game.setStatus(GameStatus.BOOKED);
     }
 
-    public void cancel(Long gameId) {
+    public void cancelGame(Long gameId) {
         Game game = gameRepository.findById(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         game.setStatus(GameStatus.CANCELLED);
