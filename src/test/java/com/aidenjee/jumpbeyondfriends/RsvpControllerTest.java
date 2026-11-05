@@ -5,6 +5,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -41,6 +42,17 @@ public class RsvpControllerTest {
                 { "playerId": 2, "status": "GOING" }
             """))
             .andExpect(status().isCreated());
+    }
+
+    @Test 
+    public void createRsvpWithBadStatusShouldReturn400() throws Exception {
+        mockMvc.perform(post("/api/games/" + 2L + "/rsvps")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                { "playerId": 2, "status": "ATTENDING" }
+            """))
+            .andExpect(status().isBadRequest());
+        verifyNoInteractions(rsvpService);
     }
 
     @Test
