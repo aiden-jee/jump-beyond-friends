@@ -13,15 +13,21 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.aidenjee.jumpbeyondfriends.game.Game;
 import com.aidenjee.jumpbeyondfriends.game.GameRepository;
+import com.aidenjee.jumpbeyondfriends.game.GameService;
+import com.aidenjee.jumpbeyondfriends.game.GameStatus;
 import com.aidenjee.jumpbeyondfriends.player.Player;
 import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
@@ -36,6 +42,9 @@ public class RsvpConcurrencyTest {
     private RsvpService rsvpService;
 
     @Autowired
+    private GameService gameService;
+
+    @Autowired
     private GameRepository gameRepository;
 
     @Autowired
@@ -43,6 +52,9 @@ public class RsvpConcurrencyTest {
 
     @Autowired
     private RsvpRepository rsvpRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private Long gameId;
     private Long playerId;
@@ -75,67 +87,126 @@ public class RsvpConcurrencyTest {
         return playerRepository.saveAndFlush(player);
     }
 
-@Test
-void concurrentIdenticalRsvpWritesShouldOnlyCreateOne() throws Exception {
-    int threadCount = 3;
-    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-    CountDownLatch ready = new CountDownLatch(threadCount);
-    CountDownLatch start = new CountDownLatch(1);
+    @Test
+    void concurrentIdenticalRsvpWritesShouldOnlyCreateOne() throws Exception {
+        int threadCount = 3;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
 
-    List<Future<Void>> futures = new ArrayList<>();
+        List<Future<Void>> futures = new ArrayList<>();
 
-    try {
-        for (int i = 0; i < threadCount; i++) {
-            Future<Void> future = executor.submit(() -> {
-                ready.countDown();
-                start.await();
-                rsvpService.createRsvp(
-                    playerId,
-                    gameId,
-                    RsvpStatus.GOING
-                );
-                return null;
-            });
-            futures.add(future);
-        }
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                Future<Void> future = executor.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    rsvpService.createRsvp(
+                        playerId,
+                        gameId,
+                        RsvpStatus.GOING
+                    );
+                    return null;
+                });
+                futures.add(future);
+            }
+            assertTrue(
+                ready.await(10, TimeUnit.SECONDS),
+                "Not all workers became ready"
+            );
+            start.countDown();
 
-        assertTrue(
-            ready.await(10, TimeUnit.SECONDS),
-            "Not all workers became ready"
-        );
-        start.countDown();
-
-        int successCnt = 0;
-        int duplicateCnt = 0;
-
-        for (Future<Void> future : futures) {
-            try {
-                future.get(10, TimeUnit.SECONDS);
-                successCnt++;
-
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-
-                if (cause instanceof IllegalStateException
-                        && "RSVP already exists".equals(cause.getMessage())) {
-                    duplicateCnt++;
-                } else {
-                    throw e;
+            int successCnt = 0;
+            int duplicateCnt = 0;
+            for (Future<Void> future : futures) {
+                try {
+                    future.get(10, TimeUnit.SECONDS);
+                    successCnt++;
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof IllegalStateException
+                            && "RSVP already exists".equals(cause.getMessage())) {
+                        duplicateCnt++;
+                    } else {
+                        throw e;
+                    }
                 }
             }
+            assertEquals(1, successCnt);
+            assertEquals(2, duplicateCnt);
+            assertEquals(1, rsvpRepository.findByGame_Id(gameId).size());
+
+        } finally {
+            start.countDown();
+            executor.shutdownNow();
+            assertTrue(
+                executor.awaitTermination(10, TimeUnit.SECONDS),
+                "Executor did not terminate"
+            );
         }
-
-        assertEquals(1, successCnt);
-        assertEquals(2, duplicateCnt);
-        assertEquals(1, rsvpRepository.findByGame_Id(gameId).size());
-
-    } finally {
-        start.countDown();
-        executor.shutdownNow();
-        assertTrue(
-            executor.awaitTermination(10, TimeUnit.SECONDS),
-            "Executor did not terminate"
-        );
     }
-}
+
+    @Test 
+    void cancelGameShouldDisallowConcurrentRsvpCreations() throws Exception {
+        TransactionTemplate transactionTemplate = 
+            new TransactionTemplate(transactionManager);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch cancellationDone = new CountDownLatch(1);
+        CountDownLatch rsvpStarting = new CountDownLatch(1);
+        CountDownLatch allowCommit = new CountDownLatch(1);
+        try {
+            Future<Void> cancelFuture = executor.submit(() -> {
+                transactionTemplate.executeWithoutResult(status -> {
+                    gameService.cancelGame(gameId);
+                    cancellationDone.countDown();
+                    try {
+                        if (!allowCommit.await(10, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Timed out waiting to commit");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("Cancellation interrupted", e);
+                    }
+                });
+
+                return null;
+            });
+            Future<Void> createFuture = executor.submit(() -> {
+                cancellationDone.await();
+                rsvpStarting.countDown();
+                rsvpService.createRsvp(playerId, gameId, RsvpStatus.GOING);
+                return null;
+            });
+
+            assertTrue(
+                rsvpStarting.await(10, TimeUnit.SECONDS),
+                "RSVP creation worker never started"
+            );
+            allowCommit.countDown();
+            cancelFuture.get(10, TimeUnit.SECONDS);
+
+            ExecutionException exception = assertThrows(
+                ExecutionException.class,
+                () -> createFuture.get(10, TimeUnit.SECONDS)
+            );
+            Throwable cause = exception.getCause();
+            assertInstanceOf(IllegalStateException.class, cause);
+            assertEquals("Cannot RSVP to a canceled game", cause.getMessage());
+            assertEquals(
+                GameStatus.CANCELLED,
+                gameRepository.findById(gameId).orElseThrow().getStatus()
+            );
+
+            assertTrue(
+                rsvpRepository.findByGame_Id(gameId).isEmpty()
+            );
+        } finally {
+            allowCommit.countDown();
+            executor.shutdownNow();
+            assertTrue(
+                executor.awaitTermination(10, TimeUnit.SECONDS),
+                "Executor did not terminate"
+            );
+        }
+    }
 }
