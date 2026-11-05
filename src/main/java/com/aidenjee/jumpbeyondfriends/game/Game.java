@@ -51,6 +51,16 @@ public class Game {
         status = GameStatus.PROPOSED;
     }
 
+    public Game(Instant startTime, Instant endTime, int threshold) {
+        if (threshold < 2) {
+            throw new IllegalArgumentException(
+                "Threshold must be at least 2"
+            );
+        }
+        this(startTime, endTime);
+        this.threshold = threshold;
+    }
+
     /* Getters */
     public Long getId() {
         return id;

@@ -6,8 +6,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
 
 
 
@@ -15,6 +21,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController 
 public class GameController {
     private final GameService gameService;
+
+    public record GameRequest(
+        @NotNull Instant startTime,
+        @NotNull Instant endTime,
+        @Min(2) int threshold
+    ) {}
+
+    public record GameResponse(
+        Long gameId,
+        Instant startTime,
+        Instant endTime,
+        int threshold,
+        GameStatus status
+    ) {}
+
 
     public record GameDetailsResponse(
         Long gameId,
@@ -29,6 +50,25 @@ public class GameController {
     public GameController(GameService gameService) {
         this.gameService = gameService;
     }
+
+    @PostMapping("/api/games")
+    @ResponseStatus(HttpStatus.CREATED)
+    public GameResponse createGame(@Valid @RequestBody GameRequest req) {
+        Game game = gameService.createGame(
+            req.startTime(), 
+            req.endTime(), 
+            req.threshold()
+        );
+        
+        return new GameResponse(
+            game.getId(),
+            game.getStartTime(),
+            game.getEndTime(),
+            game.getThreshold(),
+            game.getStatus()
+        );
+    }
+    
 
     @GetMapping("/api/games/{gameId}")
     @ResponseStatus(HttpStatus.OK)

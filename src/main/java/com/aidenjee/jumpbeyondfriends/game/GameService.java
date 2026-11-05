@@ -1,11 +1,11 @@
 package com.aidenjee.jumpbeyondfriends.game;
 
-import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
-
+import java.time.Instant;
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 
+import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpRepository;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
 
@@ -20,6 +20,17 @@ public class GameService {
         this.gameRepository = gameRepository;
         this.rsvpRepository = rsvpRepository;
     }
+
+    public Game createGame(Instant start, Instant end, int threshold) {
+        if (!start.isAfter(Instant.now())) {
+            throw new IllegalArgumentException("Game cannot start in the past");
+        }
+
+
+        Game game = new Game(start, end, threshold);
+        gameRepository.save(game);
+        return game;
+    } 
 
     public GameSummary getGameSummary(Long gameId) {
         Game game = gameRepository.findById(gameId)
