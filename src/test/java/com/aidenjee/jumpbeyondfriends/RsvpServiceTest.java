@@ -1,5 +1,7 @@
 package com.aidenjee.jumpbeyondfriends;
 
+import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.NoSuchElementException;
@@ -92,7 +94,7 @@ public class RsvpServiceTest {
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(true);
         assertThrows(
-            IllegalStateException.class,
+            BusinessConflictException.class,
             () -> rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING)
         );
         verify(rsvpRepository, never()).save(any(Rsvp.class));
@@ -173,8 +175,8 @@ public class RsvpServiceTest {
         
         game.setStatus(GameStatus.CANCELLED);
         
-        IllegalStateException e = assertThrows(
-            IllegalStateException.class, 
+        BusinessConflictException e = assertThrows(
+            BusinessConflictException.class,
             () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
         assertEquals("Cannot RSVP to a cancelled game", e.getMessage());
         assertEquals(RsvpStatus.GOING, rsvp.getStatus());

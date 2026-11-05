@@ -1,5 +1,7 @@
 package com.aidenjee.jumpbeyondfriends.rsvp;
 
+import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
+
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -42,12 +44,12 @@ public class RsvpService {
             .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
 
         if (rsvpRepository.existsById(new RsvpId(playerId, gameId))) {
-            throw new IllegalStateException("RSVP already exists");
+            throw new BusinessConflictException("RSVP already exists");
         }
 
 
         if (game.getStatus() == GameStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot RSVP to a canceled game");
+            throw new BusinessConflictException("Cannot RSVP to a canceled game");
         }
 
         Rsvp rsvp = new Rsvp(player, game, status);
@@ -61,7 +63,7 @@ public class RsvpService {
         Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         if (game.getStatus() == GameStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot RSVP to a cancelled game");
+            throw new BusinessConflictException("Cannot RSVP to a cancelled game");
         }
 
         rsvp.changeStatus(status);
@@ -79,7 +81,7 @@ public class RsvpService {
 
     public List<PlayerRsvpSummary> getRsvpsForGameId(Long gameId) {
         if (!gameRepository.existsById(gameId)) {
-            throw new IllegalStateException("Game does not exist!");
+            throw new BusinessConflictException("Game does not exist!");
         }
         List<PlayerRsvpSummary> rsvps = rsvpRepository.findSummariesByGameId(gameId);
         return rsvps;
@@ -87,7 +89,7 @@ public class RsvpService {
 
     public List<GameRsvpSummary> getRsvpsForPlayerId(Long playerId) {
         if (!playerRepository.existsById(playerId)) {
-            throw new IllegalStateException("Player does not exist!");
+            throw new BusinessConflictException("Player does not exist!");
         }
         List<GameRsvpSummary> rsvps = rsvpRepository.findSummariesByPlayerId(playerId);
         return rsvps;

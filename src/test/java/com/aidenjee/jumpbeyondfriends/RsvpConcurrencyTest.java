@@ -1,5 +1,7 @@
 package com.aidenjee.jumpbeyondfriends;
 
+import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -124,7 +126,7 @@ public class RsvpConcurrencyTest {
                     successCnt++;
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();
-                    if (cause instanceof IllegalStateException
+                    if (cause instanceof BusinessConflictException
                             && "RSVP already exists".equals(cause.getMessage())) {
                         duplicateCnt++;
                     } else {
@@ -161,11 +163,11 @@ public class RsvpConcurrencyTest {
                     cancellationDone.countDown();
                     try {
                         if (!allowCommit.await(10, TimeUnit.SECONDS)) {
-                            throw new IllegalStateException("Timed out waiting to commit");
+                            throw new BusinessConflictException("Timed out waiting to commit");
                         }
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        throw new IllegalStateException("Cancellation interrupted", e);
+                        throw new BusinessConflictException("Cancellation interrupted", e);
                     }
                 });
 
@@ -190,7 +192,7 @@ public class RsvpConcurrencyTest {
                 () -> createFuture.get(10, TimeUnit.SECONDS)
             );
             Throwable cause = exception.getCause();
-            assertInstanceOf(IllegalStateException.class, cause);
+            assertInstanceOf(BusinessConflictException.class, cause);
             assertEquals("Cannot RSVP to a canceled game", cause.getMessage());
             assertEquals(
                 GameStatus.CANCELLED,

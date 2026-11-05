@@ -1,14 +1,9 @@
 package com.aidenjee.jumpbeyondfriends;
 
-import com.aidenjee.jumpbeyondfriends.rsvp.GameRsvpSummary;
-import com.aidenjee.jumpbeyondfriends.rsvp.PlayerRsvpSummary;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpController;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpService;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
-
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +16,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
+import com.aidenjee.jumpbeyondfriends.rsvp.GameRsvpSummary;
+import com.aidenjee.jumpbeyondfriends.rsvp.PlayerRsvpSummary;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpController;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpService;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
 
 
 @WebMvcTest(RsvpController.class)
@@ -39,6 +41,21 @@ public class RsvpControllerTest {
                 { "playerId": 2, "status": "GOING" }
             """))
             .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void createDuplicateRsvpShouldReturn409() throws Exception {
+        doThrow(new BusinessConflictException("RSVP already exists"))
+            .when(rsvpService).createRsvp(2L, 2L, RsvpStatus.GOING);
+
+        mockMvc.perform(post("/api/games/2/rsvps")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                { "playerId": 2, "status": "GOING" }
+            """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("RSVP already exists"));
     }
 
     @Test 

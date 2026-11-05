@@ -9,6 +9,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice 
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(BusinessConflictException.class)
+    public ProblemDetail handleBusinessConflict(BusinessConflictException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
     
     @ExceptionHandler(NoSuchElementException.class) 
     public ProblemDetail handleNotFound(NoSuchElementException e) {

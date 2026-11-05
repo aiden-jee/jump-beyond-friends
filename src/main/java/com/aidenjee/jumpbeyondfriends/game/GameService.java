@@ -1,5 +1,7 @@
 package com.aidenjee.jumpbeyondfriends.game;
 
+import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
+
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
@@ -37,7 +39,7 @@ public class GameService {
         Game game = gameRepository.findById(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         if (game.getStatus() != GameStatus.PROPOSED) {
-            throw new IllegalStateException("Game state must be proposed");
+            throw new BusinessConflictException("Game state must be proposed");
         }
         return rsvpRepository.countByGame_IdAndStatus(gameId, RsvpStatus.GOING) >= game.getThreshold();
     }
@@ -47,7 +49,7 @@ public class GameService {
         Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
         if (game.getStatus() != GameStatus.PROPOSED) {
-            throw new IllegalStateException("Game state must be proposed");
+            throw new BusinessConflictException("Game state must be proposed");
         }
         game.setStatus(GameStatus.BOOKED);
     }
