@@ -55,4 +55,31 @@ public class GameControllerTest {
 
         verify(gameService).createGame(start, end, 4);
     }
+
+    @Test 
+    public void createGameWithMissingStartTimeShouldReturn400() throws Exception {
+        mockMvc.perform(post("/api/games")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "endTime": "2040-01-01T02:00:00Z",
+                    "threshold": 4
+                }
+            """))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test 
+    public void createGameWithThresholdBelow2ShouldReturn400() throws Exception {
+        mockMvc.perform(post("/api/games")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "startTime": "2040-01-01T00:00:00Z",
+                    "endTime": "2040-01-01T02:00:00Z",
+                    "threshold": 1
+                }
+            """))
+            .andExpect(status().isBadRequest());
+    }
 }
