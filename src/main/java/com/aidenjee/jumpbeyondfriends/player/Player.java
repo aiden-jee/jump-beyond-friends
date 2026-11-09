@@ -26,7 +26,6 @@ public class Player {
         if (name.length() > 50) {
             throw new IllegalArgumentException("Player name cannot exceed 50 characters");
         }
-
         this.name = name;
     }
 

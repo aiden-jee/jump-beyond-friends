@@ -1,6 +1,8 @@
 package com.aidenjee.jumpbeyondfriends.game;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+
 
 
 
@@ -36,7 +39,6 @@ public class GameController {
         GameStatus status
     ) {}
 
-
     public record GameDetailsResponse(
         Long gameId,
         Instant startTime,
@@ -49,6 +51,21 @@ public class GameController {
 
     public GameController(GameService gameService) {
         this.gameService = gameService;
+    }
+
+    // Helper methods
+    private GameDetailsResponse toGameDetailsResponse(GameSummary summary) {
+        Game game = summary.game();
+
+        return new GameDetailsResponse(
+            game.getId(),
+            game.getStartTime(),
+            game.getEndTime(),
+            game.getStatus(),
+            game.getThreshold(),
+            summary.goingCount(),
+            summary.goingCount() >= game.getThreshold()
+        );
     }
 
     @PostMapping("/api/games")
@@ -69,22 +86,22 @@ public class GameController {
         );
     }
     
+    @GetMapping("/api/games")
+    public List<GameDetailsResponse> getUpcomingGames() {
+        List<GameSummary> summaries = gameService.getUpcomingGames();
+        List<GameDetailsResponse> res = new ArrayList<>();
+        for (GameSummary summary: summaries) {
+            res.add(toGameDetailsResponse(summary));   
+        }
+        return res;
+    }
+    
 
     @GetMapping("/api/games/{gameId}")
     @ResponseStatus(HttpStatus.OK)
     public GameDetailsResponse getGameDetails(@PathVariable Long gameId) {
         GameSummary summary = gameService.getGameSummary(gameId);
-        Game game = summary.game();
-        long goingCount = summary.goingCount();
-        return new GameDetailsResponse(
-            gameId, 
-            game.getStartTime(), 
-            game.getEndTime(), 
-            game.getStatus(), 
-            game.getThreshold(), 
-            goingCount, 
-            goingCount >= game.getThreshold()
-        );
+        return toGameDetailsResponse(summary);
     }
 
     @PostMapping("/api/games/{gameId}/book")
@@ -98,7 +115,4 @@ public class GameController {
     public void cancelGame(@PathVariable Long gameId) {
         gameService.cancelGame(gameId);
     }
-    
-    
-    
 }

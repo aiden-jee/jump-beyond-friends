@@ -1,6 +1,7 @@
 package com.aidenjee.jumpbeyondfriends.game;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
@@ -32,6 +33,14 @@ public class GameService {
         return game;
     } 
 
+    public List<GameSummary> getUpcomingGames() {
+        return gameRepository.findUpcomingGameSummaries(
+            Instant.now(),
+            RsvpStatus.GOING,
+            GameStatus.CANCELLED
+        );
+    }
+    
     public GameSummary getGameSummary(Long gameId) {
         Game game = gameRepository.findById(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
