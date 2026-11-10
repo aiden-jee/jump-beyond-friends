@@ -32,5 +32,17 @@ public interface RsvpRepository extends JpaRepository<Rsvp, RsvpId>{
                 """)
         List<GameRsvpSummary> findSummariesByPlayerId(@Param("playerId") Long playerId);
 
+        @Query("""
+                SELECT new com.aidenjee.jumpbeyondfriends.dto.RsvpPlayerResponse(
+                        p.id,
+                        p.name,
+                        r.status
+                )
+                FROM Rsvp r
+                JOIN r.player p
+                WHERE r.game.id = :gameId
+                """)
+        List<RsvpPlayerResponse> findRsvpPlayersByGameId(@Param("gameId") Long gameId);
 
+        
 }
