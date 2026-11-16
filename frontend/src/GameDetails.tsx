@@ -35,6 +35,7 @@ export function GameDetails({ id, player }: { id: number; player: Player }) {
   }, [id, revision]);
 
   const ownRsvp = rsvps.find(rsvp => rsvp.playerId === player.playerId);
+  const rsvpName = (rsvp: PlayerRsvp) => rsvp.name || (rsvp.playerId === player.playerId ? player.name : `Player ${rsvp.playerId}`);
   const unavailable = busy || loading || game?.status === 'CANCELLED';
   async function mutate(action: () => Promise<void | boolean>, success: string) {
     if (busy || loading) return;
@@ -72,6 +73,16 @@ export function GameDetails({ id, player }: { id: number; player: Player }) {
       <div className="detail-grid"><div><section className="detail-section"><h2>Count the crew.</h2><Attendance game={game} />
         <p className="hint">{game.status === 'CANCELLED' ? 'This game is cancelled. Attendance is shown for reference.' : game.status === 'BOOKED' ? game.meetsAttendanceThreshold ? 'The game is booked and the attendance minimum is met.' : 'The game is booked, but attendance is below the minimum. Invite a few more friends.' : game.meetsAttendanceThreshold ? 'Enough players to book. A court reservation still needs to be made.' : 'Once enough players commit, it’s time to reserve a court.'}</p>
         <div className="response-totals">{responses.map(response => <span key={response.status}><strong>{rsvps.filter(rsvp => rsvp.status === response.status).length}</strong> {response.label.toLowerCase()}</span>)}</div>
+        {rsvps.length === 0 ? <p className="hint">No responses yet.</p> : (
+          <ul className="player-rsvps" aria-label="Player responses">
+            {[...rsvps].sort((a, b) => rsvpName(a).localeCompare(rsvpName(b))).map(rsvp => (
+              <li key={rsvp.playerId}>
+                <span className="rsvp-player-name">{rsvpName(rsvp)}{rsvp.playerId === player.playerId && <small className="muted"> (you)</small>}</span>
+                <span className="muted">{responses.find(response => response.status === rsvp.status)?.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section><section className="detail-section"><h2>See you there, {player.name}?</h2><p className="muted">{ownRsvp ? 'Your response is saved. Plans change; you can update it here.' : 'Choose your response to let the crew know.'}</p>
         <div className="rsvp-options" role="group" aria-label="Your RSVP">{responses.map(response => <button key={response.status} className={ownRsvp?.status === response.status ? 'primary' : 'secondary'} aria-pressed={ownRsvp?.status === response.status} disabled={unavailable || ownRsvp?.status === response.status} onClick={() => void respond(response.status)}>{response.label}{ownRsvp?.status === response.status ? ' ✓' : ''}</button>)}</div>
         {busy && !bookingDescription && <p className="hint" role="status">Saving changes…</p>}

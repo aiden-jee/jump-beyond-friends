@@ -79,11 +79,11 @@ public class RsvpService {
         rsvpRepository.delete(rsvp);
     }
 
-    public List<PlayerRsvpSummary> getRsvpsForGameId(Long gameId) {
+    public List<RsvpPlayerResponse> getRsvpsForGameId(Long gameId) {
         if (!gameRepository.existsById(gameId)) {
             throw new BusinessConflictException("Game does not exist!");
         }
-        List<PlayerRsvpSummary> rsvps = rsvpRepository.findSummariesByGameId(gameId);
+        List<RsvpPlayerResponse> rsvps = rsvpRepository.findRsvpPlayersByGameId(gameId);
         return rsvps;
     }
 

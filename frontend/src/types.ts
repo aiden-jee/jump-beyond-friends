@@ -11,4 +11,4 @@ export interface Game {
   meetsAttendanceThreshold: boolean;
 }
 export interface GameInput { startTime: string; endTime: string; threshold: number }
-export interface PlayerRsvp { playerId: number; status: RsvpStatus }
+export interface PlayerRsvp { playerId: number; name: string; status: RsvpStatus }

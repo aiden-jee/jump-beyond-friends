@@ -1,37 +1,55 @@
-import { useRef, useState } from 'react';
-import { gameDate, timeRange } from './format.ts';
+import { useEffect, useId, useRef, useState } from 'react';
+import { copyInvitation, gameInvitation, shareInvitation } from './sharing.ts';
+import type { ShareResult } from './sharing.ts';
 import type { Game } from './types.ts';
 
 export function ShareGame({ game }: { game: Game }) {
-  const [feedback, setFeedback] = useState('');
-  const [manual, setManual] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
-  const url = `${window.location.origin}/games/${game.gameId}`;
-  async function copy() {
-    setFeedback('');
-    try {
-      await navigator.clipboard.writeText(url);
-      setFeedback('Link copied. Paste it into your iMessage group.');
-      setManual(false);
-    } catch {
-      setManual(true);
-      setFeedback('Select and copy the link below to share it.');
-    }
-  }
+  const [result, setResult] = useState<ShareResult | null>(null);
+  const [copyOnly, setCopyOnly] = useState(() => typeof navigator.share !== 'function');
+  const [busy, setBusy] = useState(false);
+  const inProgress = useRef(false);
+  const invitationId = useId();
+  const invitation = gameInvitation(game, window.location.origin);
+
+  useEffect(() => {
+    if (result !== 'copied') return;
+    const timer = window.setTimeout(() => setResult(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [result]);
+
   async function share() {
-    setFeedback('');
-    if (!navigator.share) { await copy(); return; }
+    if (!invitation || inProgress.current) return;
+    inProgress.current = true;
+    setBusy(true); setResult(null);
     try {
-      await navigator.share({ title: 'Jump Beyond Friends · Volleyball', url,
-        text: `${gameDate(game.startTime)} · ${timeRange(game.startTime, game.endTime)}. ${game.status === 'CANCELLED' ? 'Game cancelled.' : `${game.goingCount} going / ${game.threshold} minimum. ${game.status === 'BOOKED' ? 'Booked.' : 'Proposed; reservation pending.'}`}`,
-      });
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      await copy();
+      const next = await (copyOnly ? copyInvitation(invitation) : shareInvitation(invitation));
+      if (next === 'share-failed') setCopyOnly(true);
+      setResult(next);
+    } finally {
+      inProgress.current = false;
+      setBusy(false);
     }
   }
-  return <section className="share-block" aria-label="Share this game"><div><h2>Same game. Whole crew.</h2><p>Send the link to your iMessage group.</p></div><div className="button-row"><button className="secondary" onClick={share}>Share ↗</button><button className="text-button" onClick={copy}>Copy link</button></div>
-    {feedback && <p className="hint share-feedback" role="status">{feedback}</p>}
-    {manual && <input ref={input} aria-label="Game link to copy" readOnly value={url} onFocus={() => input.current?.select()} />}
-  </section>;
+
+  if (!invitation) return null;
+
+  return (
+    <section className="share-block" aria-label="Share game">
+      <div><h2>Same game. Whole crew.</h2><p>Invite your iMessage group with the game details and RSVP link.</p></div>
+      <button className="secondary" onClick={() => void share()} disabled={busy} aria-busy={busy}>
+        {copyOnly ? 'Copy Invitation' : 'Share Game'}
+      </button>
+      {result === 'copied' && <p className="notice share-feedback" role="status">Invitation copied!</p>}
+      {result === 'share-failed' && <p className="notice share-feedback" role="status">Sharing couldn’t open. Tap “Copy Invitation” instead.</p>}
+      {result === 'manual' && (
+        <div className="manual-invitation">
+          <p className="hint" role="status">Automatic copying isn’t available. Select the invitation below, then choose Copy.</p>
+          <label htmlFor={invitationId}>Invitation to copy</label>
+          <textarea id={invitationId} readOnly rows={9} value={invitation}
+            onFocus={event => event.currentTarget.select()}
+            onClick={event => event.currentTarget.select()} />
+        </div>
+      )}
+    </section>
+  );
 }

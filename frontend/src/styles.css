@@ -17,11 +17,11 @@ body {
   margin:0
 }
 
-button,input {
+button,input,textarea {
   font:inherit
 }
 
-button,a,input {
+button,a,input,textarea {
   -webkit-tap-highlight-color:transparent
 }
 
@@ -46,12 +46,12 @@ button {
   min-height:44px
 }
 
-button:focus-visible,a:focus-visible,input:focus-visible {
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible {
   outline:3px solid #be4b2e;
   outline-offset:4px
 }
 
-input {
+input,textarea {
   width:100%;
   min-height:52px;
   border:1px solid #aaaFA5;
@@ -728,6 +728,31 @@ meter::-moz-meter-bar {
   color:#183f35
 }
 
+.player-rsvps {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.player-rsvps li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid #d5d8ca;
+}
+
+.rsvp-player-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.player-rsvps li > .muted {
+  flex-shrink: 0;
+}
+
 .rsvp-options {
   display:flex;
   gap:10px
@@ -836,10 +861,14 @@ meter::-moz-meter-bar {
   margin:0
 }
 
-.button-row {
-  display:flex;
-  gap:24px;
-  align-items:center
+.manual-invitation {
+  width: 100%;
+}
+
+.manual-invitation textarea {
+  display: block;
+  resize: vertical;
+  line-height: 1.6;
 }
 
 .detail-page>.text-button {
@@ -892,11 +921,8 @@ meter::-moz-meter-bar {
   .rsvp-options button {
     font-size:14px
   }
-  .button-row {
+  .share-block > .secondary {
     width:100%
-  }
-  .button-row>.secondary {
-    flex:1
   }
   .response-totals {
     justify-content:space-between;

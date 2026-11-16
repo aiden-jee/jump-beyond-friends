@@ -1,5 +1,21 @@
 import type { GameInput } from './types.ts';
 
+function localDateTime(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function defaultStartTime(now = new Date()): string {
+  return localDateTime(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+}
+
+export function oneHourAfter(start: string): string {
+  const end = new Date(start);
+  if (!Number.isFinite(end.getTime())) return '';
+  end.setHours(end.getHours() + 1);
+  return localDateTime(end);
+}
+
 export function gameInput(start: string, end: string, threshold: string): GameInput {
   const startTime = new Date(start);
   const endTime = new Date(end);

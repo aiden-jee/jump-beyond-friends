@@ -45,11 +45,8 @@ public class RsvpController {
 
     @GetMapping("/api/games/{gameId}/rsvps")
     @ResponseStatus(HttpStatus.OK)
-    public List<PlayerRsvpResponse> getRsvpsForGame(@PathVariable Long gameId) {
-        return rsvpService.getRsvpsForGameId(gameId)
-            .stream()
-            .map(summary -> new PlayerRsvpResponse(summary.playerId(), summary.status()))
-            .toList();
+    public List<RsvpPlayerResponse> getRsvpsForGame(@PathVariable Long gameId) {
+        return rsvpService.getRsvpsForGameId(gameId);
     }
 
     @GetMapping("/api/players/{playerId}/rsvps")

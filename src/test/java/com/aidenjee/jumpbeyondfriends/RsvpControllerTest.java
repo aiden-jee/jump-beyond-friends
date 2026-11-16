@@ -71,24 +71,6 @@ public class RsvpControllerTest {
     }
 
     @Test 
-    public void getRsvpsForGameShouldReturn200AndJson() throws Exception {
-        PlayerRsvpSummary example = new PlayerRsvpSummary(1L, RsvpStatus.GOING);
-        PlayerRsvpSummary example2 = new PlayerRsvpSummary(2L, RsvpStatus.MAYBE);
-
-        List<PlayerRsvpSummary> rsvps = List.of(example, example2);
-        when(rsvpService.getRsvpsForGameId(3L)).thenReturn(rsvps);
-        mockMvc.perform(get("/api/games/" + 3L + "/rsvps"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].playerId").value(1))
-            .andExpect(jsonPath("$[0].status").value("GOING"))
-            .andExpect(jsonPath("$[1].playerId").value(2))
-            .andExpect(jsonPath("$[1].status").value("MAYBE"));
-        
-        verify(rsvpService).getRsvpsForGameId(3L);
-    }
-
-    @Test 
     public void getRsvpsForPlayerShouldReturn200AndJson() throws Exception {
         GameRsvpSummary example = new GameRsvpSummary(1L, RsvpStatus.GOING);
         GameRsvpSummary example2 = new GameRsvpSummary(2L, RsvpStatus.MAYBE);

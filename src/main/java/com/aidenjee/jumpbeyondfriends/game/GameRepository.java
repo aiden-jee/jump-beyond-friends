@@ -26,7 +26,7 @@ public interface GameRepository extends JpaRepository<Game, Long> {
     @Query("""
         SELECT new com.aidenjee.jumpbeyondfriends.game.GameSummary(
             g,
-            COUNT(r)
+            COUNT(r.id.playerId)
         )
         FROM Game g
         LEFT JOIN Rsvp r
