@@ -1,5 +1,9 @@
 package com.aidenjee.jumpbeyondfriends.player;
 
+import java.time.Instant;
+
+import org.apache.logging.log4j.CloseableThreadContext;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,8 +18,17 @@ public class Player {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique= true, length = 50)
+    @Column(nullable = false)
     private String name;
+
+    @Column(name = "google_sub", nullable = false, unique = true)
+    private String googleSub;
+
+    @Column(name = "verified_at")
+    private Instant verifiedAt; 
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
 
     protected Player() {}
 
