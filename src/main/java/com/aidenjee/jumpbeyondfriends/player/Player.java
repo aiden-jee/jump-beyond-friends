@@ -24,9 +24,6 @@ public class Player {
     @Column(name = "google_sub", nullable = false, unique = true)
     private String googleSub;
 
-    @Column(name = "verified_at")
-    private Instant verifiedAt; 
-
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -42,11 +39,28 @@ public class Player {
         this.name = name;
     }
 
+    public Player(String name, String googleSub, String avatarUrl) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Player name cannot be blank");
+        }
+        this.name = name;
+        this.googleSub = googleSub;
+        this.avatarUrl = avatarUrl;
+    }
+
     public Long getId() {
         return id;
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getGoogleSub() {
+        return googleSub;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 }

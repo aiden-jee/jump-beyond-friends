@@ -19,4 +19,9 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleNotFound(NoSuchElementException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
+
+    @ExceptionHandler(InvalidCodeException.class)
+    public ProblemDetail handleInvalidCode(InvalidCodeException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+    }
 }

@@ -37,13 +37,13 @@ public class RsvpService {
      * Throws an exception when the Rsvp already exists.
      */
     @Transactional 
-    public void createRsvp(Long playerId, Long gameId, RsvpStatus status) {
+    public void createRsvp(String googleSub, Long gameId, RsvpStatus status) {
         Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));
-        Player player = playerRepository.findById(playerId)
+        Player player = playerRepository.findByGoogleSub(googleSub)
             .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
-
-        if (rsvpRepository.existsById(new RsvpId(playerId, gameId))) {
+        
+        if (rsvpRepository.existsById(new RsvpId(player.getId(), gameId))) {
             throw new BusinessConflictException("RSVP already exists");
         }
 
@@ -57,8 +57,10 @@ public class RsvpService {
     }
 
     @Transactional 
-    public void updateRsvpStatus(Long playerId, Long gameId, RsvpStatus status) {
-        Rsvp rsvp = rsvpRepository.findById(new RsvpId(playerId, gameId))
+    public void updateRsvpStatus(String googleSub, Long gameId, RsvpStatus status) {
+        Player player = playerRepository.findByGoogleSub(googleSub)
+            .orElseThrow(() -> new NoSuchElementException("Player does not exist!"));
+        Rsvp rsvp = rsvpRepository.findById(new RsvpId(player.getId(), gameId))
             .orElseThrow(() -> new NoSuchElementException("RSVP does not exist!"));
         Game game = gameRepository.findByIdForWrite(gameId)
             .orElseThrow(() -> new NoSuchElementException("Game does not exist!"));

@@ -54,7 +54,7 @@ public class RsvpServiceTest {
     }
 
     private Player createPlayer(String name, Long id) {
-        Player player = new Player(name);
+        Player player = new Player(name, TestGoogleUsers.GOOGLE_SUB, null);
         ReflectionTestUtils.setField(player, "id", id);
         return player;
     }
@@ -62,7 +62,7 @@ public class RsvpServiceTest {
     @Test
     public void createRsvpShouldSaveRsvpWithCorrectPlayerGameAndStatus() {
         Player player = createPlayer("RSVP Test", 1L);
-        when(playerRepository.findById(1L))
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB))
             .thenReturn(Optional.of(player));
 
         Game game = createGame(2L);
@@ -72,7 +72,7 @@ public class RsvpServiceTest {
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(false);
 
-        rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING);
+        rsvpService.createRsvp(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING);
 
         ArgumentCaptor<Rsvp> captor = ArgumentCaptor.forClass(Rsvp.class);
         verify(rsvpRepository).save(captor.capture());
@@ -89,25 +89,25 @@ public class RsvpServiceTest {
 
     @Test public void createDuplicateRsvpShouldThrowException() {
         when(gameRepository.findByIdForWrite(2L)).thenReturn(Optional.of(createGame(2L)));
-        when(playerRepository.findById(1L)).thenReturn(Optional.of(createPlayer("Test", 1L)));
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB)).thenReturn(Optional.of(createPlayer("Test", 1L)));
 
         when(rsvpRepository.existsById(new RsvpId(1L, 2L)))
             .thenReturn(true);
         assertThrows(
             BusinessConflictException.class,
-            () -> rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING)
+            () -> rsvpService.createRsvp(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING)
         );
         verify(rsvpRepository, never()).save(any(Rsvp.class));
     }
 
     @Test 
     public void createRsvpInvalidPlayerShouldThrowException() {
-        when(playerRepository.findById(1L)).thenReturn(Optional.empty());
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB)).thenReturn(Optional.empty());
         when(gameRepository.findByIdForWrite(2L)).thenReturn(Optional.of(createGame(2L)));
 
         NoSuchElementException e = assertThrows(
             NoSuchElementException.class,
-            () -> rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING)
+            () -> rsvpService.createRsvp(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING)
         );
         assertEquals("Player does not exist!", e.getMessage());
         verify(rsvpRepository, never()).save(any(Rsvp.class));
@@ -119,7 +119,7 @@ public class RsvpServiceTest {
 
         NoSuchElementException e = assertThrows(
             NoSuchElementException.class,
-            () -> rsvpService.createRsvp(1L, 2L, RsvpStatus.GOING)
+            () -> rsvpService.createRsvp(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING)
         );
         assertEquals("Game does not exist!", e.getMessage());
         verify(rsvpRepository, never()).save(any(Rsvp.class));
@@ -128,6 +128,8 @@ public class RsvpServiceTest {
     @Test 
     public void updateRsvpShouldUpdateRsvpWithCorrectPlayerGameAndStatus() {
         Player player = createPlayer("RSVP Test", 1L);
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB))
+            .thenReturn(Optional.of(player));
 
         Game game = createGame(2L);
         when(gameRepository.findByIdForWrite(2L))
@@ -137,7 +139,7 @@ public class RsvpServiceTest {
         when(rsvpRepository.findById(new RsvpId(1L, 2L)))
             .thenReturn(Optional.of(rsvp));
         
-        rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING);
+        rsvpService.updateRsvpStatus(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.NOT_GOING);
         assertEquals(RsvpStatus.NOT_GOING, rsvp.getStatus());
         assertEquals(new RsvpId(1L, 2L), rsvp.getId());
     }
@@ -145,6 +147,8 @@ public class RsvpServiceTest {
     @Test
     public void updateRsvpInvalidGameShouldThrowException() {
         Player player = createPlayer("RSVP Test", 1L);
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB))
+            .thenReturn(Optional.of(player));
 
         Game game = createGame(2L);
         when(gameRepository.findByIdForWrite(2L))
@@ -156,7 +160,7 @@ public class RsvpServiceTest {
         
         NoSuchElementException e = assertThrows(
             NoSuchElementException.class, 
-            () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
+            () -> rsvpService.updateRsvpStatus(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.NOT_GOING));
         assertEquals("Game does not exist!", e.getMessage());
         assertEquals(RsvpStatus.GOING, rsvp.getStatus());
     }
@@ -164,6 +168,8 @@ public class RsvpServiceTest {
     @Test 
     public void cannotUpdateRsvpCancelledGame() {
         Player player = createPlayer("RSVP Test", 1L);
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB))
+            .thenReturn(Optional.of(player));
 
         Game game = createGame(2L);
         when(gameRepository.findByIdForWrite(2L))
@@ -177,19 +183,21 @@ public class RsvpServiceTest {
         
         BusinessConflictException e = assertThrows(
             BusinessConflictException.class,
-            () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
+            () -> rsvpService.updateRsvpStatus(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.NOT_GOING));
         assertEquals("Cannot RSVP to a cancelled game", e.getMessage());
         assertEquals(RsvpStatus.GOING, rsvp.getStatus());
     }
 
     @Test 
     public void cannotUpdateNonExistantRsvp() {
+        when(playerRepository.findByGoogleSub(TestGoogleUsers.GOOGLE_SUB))
+            .thenReturn(Optional.of(createPlayer("RSVP Test", 1L)));
         when(rsvpRepository.findById(new RsvpId(1L, 2L)))
             .thenReturn(Optional.empty());
         
         NoSuchElementException e = assertThrows(
             NoSuchElementException.class, 
-            () -> rsvpService.updateRsvpStatus(1L, 2L, RsvpStatus.NOT_GOING));
+            () -> rsvpService.updateRsvpStatus(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.NOT_GOING));
         assertEquals("RSVP does not exist!", e.getMessage());
     }
 

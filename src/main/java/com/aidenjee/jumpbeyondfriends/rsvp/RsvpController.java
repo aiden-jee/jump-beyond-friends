@@ -3,6 +3,8 @@ package com.aidenjee.jumpbeyondfriends.rsvp;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +24,7 @@ import jakarta.validation.constraints.NotNull;
 public class RsvpController {
     private final RsvpService rsvpService;
 
-    public record CreateRsvpRequest(@NotNull Long playerId, @NotNull RsvpStatus status) {}
+    public record CreateRsvpRequest(@NotNull RsvpStatus status) {}
 
     public record PatchRsvpRequest(@NotNull RsvpStatus status) {}
 
@@ -37,10 +39,11 @@ public class RsvpController {
     @PostMapping("/api/games/{gameId}/rsvps")
     @ResponseStatus(HttpStatus.CREATED)
     public void createRsvp(
+        @AuthenticationPrincipal OidcUser user,
         @PathVariable Long gameId, 
         @Valid @RequestBody CreateRsvpRequest req
     ) {
-        rsvpService.createRsvp(req.playerId(), gameId, req.status());
+        rsvpService.createRsvp(user.getSubject(), gameId, req.status());
     }
 
     @GetMapping("/api/games/{gameId}/rsvps")
@@ -58,9 +61,9 @@ public class RsvpController {
             .toList();
     }
 
-    @PatchMapping("/api/games/{gameId}/rsvps/{playerId}")
+    @PatchMapping("/api/games/{gameId}/rsvps")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void patchRsvp(@PathVariable Long gameId, @PathVariable Long playerId, @Valid @RequestBody PatchRsvpRequest req) {
-        rsvpService.updateRsvpStatus(playerId, gameId, req.status());
+    public void patchRsvp(@AuthenticationPrincipal OidcUser user, @PathVariable Long gameId, @Valid @RequestBody PatchRsvpRequest req) {
+        rsvpService.updateRsvpStatus(user.getSubject(), gameId, req.status());
     } 
 }

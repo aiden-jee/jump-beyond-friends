@@ -59,7 +59,7 @@ public class RsvpConcurrencyTest {
     private PlatformTransactionManager transactionManager;
 
     private Long gameId;
-    private Long playerId;
+    private String googleSub;
 
     @BeforeEach
     void setUp() {
@@ -67,7 +67,7 @@ public class RsvpConcurrencyTest {
         Player player = createTestPlayer();
 
         gameId = game.getId();
-        playerId = player.getId();
+        googleSub = player.getGoogleSub();
     }
 
     @AfterEach
@@ -85,7 +85,7 @@ public class RsvpConcurrencyTest {
     }
 
     private Player createTestPlayer() {
-        Player player = new Player("Aiden Jee");
+        Player player = new Player("Aiden Jee", "concurrent-google-player", null);
         return playerRepository.saveAndFlush(player);
     }
 
@@ -104,7 +104,7 @@ public class RsvpConcurrencyTest {
                     ready.countDown();
                     start.await();
                     rsvpService.createRsvp(
-                        playerId,
+                        googleSub,
                         gameId,
                         RsvpStatus.GOING
                     );
@@ -176,7 +176,7 @@ public class RsvpConcurrencyTest {
             Future<Void> createFuture = executor.submit(() -> {
                 cancellationDone.await();
                 rsvpStarting.countDown();
-                rsvpService.createRsvp(playerId, gameId, RsvpStatus.GOING);
+                rsvpService.createRsvp(googleSub, gameId, RsvpStatus.GOING);
                 return null;
             });
 

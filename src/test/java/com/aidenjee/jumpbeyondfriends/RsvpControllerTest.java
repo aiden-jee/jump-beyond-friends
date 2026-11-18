@@ -2,6 +2,7 @@ package com.aidenjee.jumpbeyondfriends;
 
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,14 +21,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
+import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
 import com.aidenjee.jumpbeyondfriends.rsvp.GameRsvpSummary;
-import com.aidenjee.jumpbeyondfriends.rsvp.PlayerRsvpSummary;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpController;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpService;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpPlayerResponse;
+
+import static com.aidenjee.jumpbeyondfriends.TestGoogleUsers.googleUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 
 @WebMvcTest(RsvpController.class)
+@Import(ControllerSecurityTestConfig.class)
 public class RsvpControllerTest {
     @Autowired 
     private MockMvc mockMvc;
@@ -34,22 +41,33 @@ public class RsvpControllerTest {
     @MockitoBean
     private RsvpService rsvpService;
 
+    @MockitoBean
+    private PlayerRepository playerRepository;
+
+    @BeforeEach
+    void enrollCurrentUser() {
+        when(playerRepository.existsByGoogleSub(TestGoogleUsers.GOOGLE_SUB)).thenReturn(true);
+    }
+
     @Test 
     public void createRsvpShouldReturn201() throws Exception {
         mockMvc.perform(post("/api/games/" + 2L + "/rsvps")
+            .with(googleUser(TestGoogleUsers.GOOGLE_SUB)).with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                { "playerId": 2, "status": "GOING" }
+                { "status": "GOING" }
             """))
             .andExpect(status().isCreated());
+        verify(rsvpService).createRsvp(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING);
     }
 
     @Test 
     public void createRsvpWithBadStatusShouldReturn400() throws Exception {
         mockMvc.perform(post("/api/games/" + 2L + "/rsvps")
+            .with(googleUser(TestGoogleUsers.GOOGLE_SUB)).with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                { "playerId": 2, "status": "ATTENDING" }
+                { "status": "ATTENDING" }
             """))
             .andExpect(status().isBadRequest());
         verifyNoInteractions(rsvpService);
@@ -58,12 +76,13 @@ public class RsvpControllerTest {
     @Test
     public void createDuplicateRsvpShouldReturn409() throws Exception {
         doThrow(new BusinessConflictException("RSVP already exists"))
-            .when(rsvpService).createRsvp(2L, 2L, RsvpStatus.GOING);
+            .when(rsvpService).createRsvp(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING);
 
         mockMvc.perform(post("/api/games/2/rsvps")
+            .with(googleUser(TestGoogleUsers.GOOGLE_SUB)).with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                { "playerId": 2, "status": "GOING" }
+                { "status": "GOING" }
             """))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.status").value(409))
@@ -77,7 +96,8 @@ public class RsvpControllerTest {
 
         List<GameRsvpSummary> rsvps = List.of(example, example2);
         when(rsvpService.getRsvpsForPlayerId(3L)).thenReturn(rsvps);
-        mockMvc.perform(get("/api/players/" + 3L + "/rsvps"))
+        mockMvc.perform(get("/api/players/" + 3L + "/rsvps")
+            .with(googleUser(TestGoogleUsers.GOOGLE_SUB)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].gameId").value(1))
@@ -90,11 +110,31 @@ public class RsvpControllerTest {
 
     @Test 
     public void patchRsvpShouldReturn204() throws Exception {
-        mockMvc.perform(patch("/api/games/" + 2L + "/rsvps/" + 1L)
+        mockMvc.perform(patch("/api/games/" + 2L + "/rsvps")
+            .with(googleUser(TestGoogleUsers.GOOGLE_SUB)).with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
                 { "status": "GOING" }
             """))
             .andExpect(status().isNoContent());
+        verify(rsvpService).updateRsvpStatus(TestGoogleUsers.GOOGLE_SUB, 2L, RsvpStatus.GOING);
+    }
+
+    @Test
+    void getRsvpsForGameShouldReturnPlayerNamesAndStatuses() throws Exception {
+        when(rsvpService.getRsvpsForGameId(3L)).thenReturn(List.of(
+            new RsvpPlayerResponse(1L, "Player A", RsvpStatus.GOING),
+            new RsvpPlayerResponse(2L, "Player B", RsvpStatus.MAYBE)
+        ));
+
+        mockMvc.perform(get("/api/games/3/rsvps").with(googleUser(TestGoogleUsers.GOOGLE_SUB)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].playerId").value(1))
+            .andExpect(jsonPath("$[0].name").value("Player A"))
+            .andExpect(jsonPath("$[0].status").value("GOING"))
+            .andExpect(jsonPath("$[1].playerId").value(2))
+            .andExpect(jsonPath("$[1].name").value("Player B"))
+            .andExpect(jsonPath("$[1].status").value("MAYBE"));
     }
 }

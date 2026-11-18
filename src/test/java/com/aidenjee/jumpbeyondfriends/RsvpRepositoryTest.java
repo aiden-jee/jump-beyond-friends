@@ -45,7 +45,7 @@ public class RsvpRepositoryTest {
         Instant start = Instant.parse("2100-01-01T18:00:00Z");
         Instant end = start.plus(2, ChronoUnit.HOURS);
 
-        Player player = new Player("RSVP Test Player");
+        Player player = new Player("RSVP Test Player", "repository-google-player", null);
         Game game = new Game(start, end);
         playerRepository.save(player);
         gameRepository.save(game);

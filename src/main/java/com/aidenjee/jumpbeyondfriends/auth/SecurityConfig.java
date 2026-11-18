@@ -3,24 +3,46 @@ package com.aidenjee.jumpbeyondfriends.auth;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Configuration 
 @EnableWebSecurity 
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    SecurityFilterChain securityFilterChain(
+        HttpSecurity http, 
+        AuthService authService
+    ) throws Exception {
+            return http
+                    .authorizeHttpRequests(auth -> auth
+                            // Google auth users can access auth endpoints
+                            .requestMatchers("/api/me").authenticated()
 
-        return http
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated()
-                )
-                .oauth2Login(Customizer.withDefaults())
-                .build();
+                            // Only enrolled players can access business logic APIs
+                            .requestMatchers("/api/**")
+                            .access((authentication, context) -> 
+                                new AuthorizationDecision(authService.isRegistered(authentication.get()))
+                            )       
+
+                            // deny all other endpoint requests
+                            .anyRequest().denyAll()
+                    )
+                    .exceptionHandling(ex -> 
+                        ex.defaultAuthenticationEntryPointFor(
+                            new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                            PathPatternRequestMatcher.withDefaults()
+                                    .matcher("/api/**")
+                        )
+                    )
+                    .oauth2Login(Customizer.withDefaults())
+                    .build();
     }
 }

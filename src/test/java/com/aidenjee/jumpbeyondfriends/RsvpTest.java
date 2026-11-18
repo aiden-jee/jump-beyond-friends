@@ -18,7 +18,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class RsvpTest {
     private Player createPlayer(Long id) {
-        Player player = new Player("Aiden");
+        Player player = new Player("Aiden", TestGoogleUsers.GOOGLE_SUB, null);
         ReflectionTestUtils.setField(player, "id", id);
         return player;
     }
