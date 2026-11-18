@@ -1,9 +1,7 @@
 package com.aidenjee.jumpbeyondfriends.player;
 
-import java.time.Instant;
 import java.util.NoSuchElementException;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.aidenjee.jumpbeyondfriends.auth.EnrollService;
@@ -20,15 +18,6 @@ public class PlayerService {
     public PlayerService(PlayerRepository playerRepository, EnrollService enrollService) {
         this.playerRepository = playerRepository;
         this.enrollService = enrollService;
-    }
-
-    public Player createPlayer(String name) {
-        if (playerRepository.existsByName(name)) {
-            throw new BusinessConflictException("Player name already exists");
-        }
-        Player player = new Player(name);
-        playerRepository.save(player);
-        return player;
     }
 
     @Transactional
