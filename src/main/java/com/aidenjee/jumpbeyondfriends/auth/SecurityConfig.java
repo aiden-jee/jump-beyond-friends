@@ -23,6 +23,9 @@ public class SecurityConfig {
     ) throws Exception {
             return http
                     .authorizeHttpRequests(auth -> auth
+                            // Csrf endpoint accessible to all
+                            .requestMatchers("/api/csrf").permitAll()
+
                             // Google auth users can access auth endpoints
                             .requestMatchers("/api/me").authenticated()
 
@@ -32,8 +35,8 @@ public class SecurityConfig {
                                 new AuthorizationDecision(authService.isRegistered(authentication.get()))
                             )       
 
-                            // deny all other endpoint requests
-                            .anyRequest().denyAll()
+                            // allow all other requests including front end routes
+                            .anyRequest().permitAll()
                     )
                     .exceptionHandling(ex -> 
                         ex.defaultAuthenticationEntryPointFor(
@@ -43,6 +46,7 @@ public class SecurityConfig {
                         )
                     )
                     .oauth2Login(Customizer.withDefaults())
+                    .csrf(csrf -> csrf.spa())
                     .build();
     }
 }

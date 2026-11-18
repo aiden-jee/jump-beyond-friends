@@ -6,6 +6,7 @@ import { Attendance, ErrorNotice, GameStatus } from './ui.tsx';
 import { ShareGame } from './ShareGame.tsx';
 import { confirmBooking } from './booking.ts';
 import { ConfirmationDialog } from './ConfirmationDialog.tsx';
+import { PlayerAvatar } from './PlayerAvatar.tsx';
 
 const responses: { status: RsvpStatus; label: string }[] = [
   { status: 'GOING', label: 'Going' }, { status: 'MAYBE', label: 'Maybe' }, { status: 'NOT_GOING', label: 'Not going' },
@@ -34,8 +35,13 @@ export function GameDetails({ id, player }: { id: number; player: Player }) {
     return () => controller.abort();
   }, [id, revision]);
 
-  const ownRsvp = rsvps.find(rsvp => rsvp.playerId === player.playerId);
-  const rsvpName = (rsvp: PlayerRsvp) => rsvp.name || (rsvp.playerId === player.playerId ? player.name : `Player ${rsvp.playerId}`);
+  const ownRsvp = rsvps.find(rsvp => rsvp.playerId === player.id);
+  const rsvpName = (rsvp: PlayerRsvp) => rsvp.name || (rsvp.playerId === player.id ? player.name : `Player ${rsvp.playerId}`);
+  const sortedRsvps = [...rsvps].sort((a, b) => {
+    const statusOrder = responses.findIndex(response => response.status === a.status)
+      - responses.findIndex(response => response.status === b.status);
+    return statusOrder || rsvpName(a).localeCompare(rsvpName(b));
+  });
   const unavailable = busy || loading || game?.status === 'CANCELLED';
   async function mutate(action: () => Promise<void | boolean>, success: string) {
     if (busy || loading) return;
@@ -45,7 +51,7 @@ export function GameDetails({ id, player }: { id: number; player: Player }) {
     finally { setBusy(false); setRevision(value => value + 1); }
   }
   async function respond(status: RsvpStatus) {
-    await mutate(() => ownRsvp ? api.updateRsvp(id, player.playerId, status) : api.createRsvp(id, player.playerId, status), 'Your response was saved.');
+    await mutate(() => ownRsvp ? api.updateRsvp(id, status) : api.createRsvp(id, status), 'Your response was saved.');
   }
   async function book() {
     await mutate(() => confirmBooking(id, text => new Promise<boolean>(resolve => {
@@ -75,9 +81,12 @@ export function GameDetails({ id, player }: { id: number; player: Player }) {
         <div className="response-totals">{responses.map(response => <span key={response.status}><strong>{rsvps.filter(rsvp => rsvp.status === response.status).length}</strong> {response.label.toLowerCase()}</span>)}</div>
         {rsvps.length === 0 ? <p className="hint">No responses yet.</p> : (
           <ul className="player-rsvps" aria-label="Player responses">
-            {[...rsvps].sort((a, b) => rsvpName(a).localeCompare(rsvpName(b))).map(rsvp => (
+            {sortedRsvps.map(rsvp => (
               <li key={rsvp.playerId}>
-                <span className="rsvp-player-name">{rsvpName(rsvp)}{rsvp.playerId === player.playerId && <small className="muted"> (you)</small>}</span>
+                <div className="rsvp-player">
+                  <PlayerAvatar name={rsvpName(rsvp)} avatarUrl={rsvp.avatarUrl} />
+                  <span className="rsvp-player-name">{rsvpName(rsvp)}{rsvp.playerId === player.id && <small className="muted"> (you)</small>}</span>
+                </div>
                 <span className="muted">{responses.find(response => response.status === rsvp.status)?.label}</span>
               </li>
             ))}
@@ -86,11 +95,20 @@ export function GameDetails({ id, player }: { id: number; player: Player }) {
       </section><section className="detail-section"><h2>See you there, {player.name}?</h2><p className="muted">{ownRsvp ? 'Your response is saved. Plans change; you can update it here.' : 'Choose your response to let the crew know.'}</p>
         <div className="rsvp-options" role="group" aria-label="Your RSVP">{responses.map(response => <button key={response.status} className={ownRsvp?.status === response.status ? 'primary' : 'secondary'} aria-pressed={ownRsvp?.status === response.status} disabled={unavailable || ownRsvp?.status === response.status} onClick={() => void respond(response.status)}>{response.label}{ownRsvp?.status === response.status ? ' ✓' : ''}</button>)}</div>
         {busy && !bookingDescription && <p className="hint" role="status">Saving changes…</p>}
-        {game.status === 'CANCELLED' ? <p className="hint">Responses are closed for this cancelled game.</p> : <p className="hint">To withdraw, choose “Not going”. Saved responses cannot be removed in v1.0.</p>}
-      </section></div><aside className="game-actions"><p className="eyebrow">Game coordination</p><h2>Make it happen.</h2><p>Booking here records a court reservation you made separately.</p>
+        {game.status === 'CANCELLED' && <p className="hint">Responses are closed for this cancelled game.</p>}
+      </section></div><aside className={`game-actions${game.status === 'BOOKED' ? ' is-booked' : ''}`}>
+        <p className="eyebrow">Game coordination</p>
+        {game.status === 'BOOKED' ? (
+          <><h2 className="booking-confirmed"><span className="booking-check" aria-hidden="true">✓</span>Game booked</h2>
+            <p>Booking recorded. Players can still update their RSVPs.</p></>
+        ) : game.status === 'CANCELLED' ? (
+          <><h2>Game cancelled</h2><p>Any venue reservation must be cancelled separately.</p></>
+        ) : (
+          <><h2>Make it happen.</h2><p>Booking here records a court reservation you made separately.</p></>
+        )}
         {game.status === 'PROPOSED' && <button className="primary wide" disabled={unavailable} onClick={() => void book()}>Mark as booked</button>}
         {game.status !== 'CANCELLED' && <button className="danger wide" disabled={unavailable} onClick={() => setShowCancelDialog(true)}>Cancel game</button>}
-        <p className="hint">Player selection doesn’t restrict access. Any player can book or cancel in v1.0.</p>
+        <p className="hint">Any enrolled player can book or cancel a game.</p>
       </aside></div><ShareGame game={game} /><button className="text-button" onClick={() => setRevision(value => value + 1)} disabled={busy}>Refresh game ↻</button></>}
     {showCancelDialog && <ConfirmationDialog
       title="Cancel this game?"

@@ -113,26 +113,50 @@ label {
   letter-spacing:0
 }
 
-.player-switch {
-  border:0;
-  background:none;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  text-align:left;
-  color:inherit;
-  max-width:55%;
-  padding:4px
+.account-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  max-width: 65%;
 }
 
-.player-switch>span:last-child {
-  overflow-wrap:anywhere
+.account-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.player-switch small {
-  display:block;
-  font-size:11px;
-  color:#65726b
+.account-name {
+  max-width: 200px;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.account-name small {
+  display: block;
+  font-size: 11px;
+  color: #65726b;
+}
+
+.sign-out {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 1px solid #bbc4b6;
+  border-radius: 5px;
+  background: transparent;
+  color: #183f35;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.sign-out:hover {
+  background: #e9ecdf;
 }
 
 .avatar {
@@ -142,7 +166,8 @@ label {
   display:grid;
   place-items:center;
   border-radius:50%;
-  font-weight:bold
+  font-weight:bold;
+  flex-shrink:0
 }
 
 main {
@@ -216,6 +241,23 @@ h2 {
 
 .wide {
   width:100%
+}
+
+.google-sign-in {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid #bbc4b6;
+  border-radius: 5px;
+  background: #fffef9;
+  color: #183f35;
+  font-weight: 700;
+}
+
+.google-sign-in:hover {
+  background: #e9ecdf;
 }
 
 .text-button {
@@ -476,11 +518,36 @@ h2 {
   color:#386134
 }
 
+.attendance-track {
+  position: relative;
+  margin-top: 10px;
+}
+
+.attendance-checkpoint {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 2px;
+  height: 15px;
+  border-radius: 1px;
+  background: #183f35;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.attendance-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  color: #65726b;
+  font-size: 10px;
+}
+
 meter {
   display:block;
   width:100%;
   height:7px;
-  margin-top:10px;
+  margin:0;
   border:0;
   background:#e0e5d6;
   border-radius:2px
@@ -506,7 +573,9 @@ meter::-moz-meter-bar {
     padding:0 22px
   }
   .site-header {
-    min-height:88px
+    min-height:88px;
+    padding:16px 0;
+    gap:14px
   }
   .brand {
     font-size:9px;
@@ -588,8 +657,14 @@ meter::-moz-meter-bar {
   .game-time {
     font-size:13px
   }
-  .player-switch {
-    font-size:13px
+  .account-controls {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 55%;
+  }
+  .account-name {
+    font-size: 13px;
   }
   .avatar {
     min-width:30px;
@@ -738,10 +813,31 @@ meter::-moz-meter-bar {
 .player-rsvps li {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
   padding: 10px 0;
   border-top: 1px solid #d5d8ca;
+}
+
+.rsvp-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.player-avatar {
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.player-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .rsvp-player-name {
@@ -783,6 +879,30 @@ meter::-moz-meter-bar {
 
 .game-actions h2 {
   font-size:28px
+}
+
+.game-actions.is-booked {
+  background: #e1ead6;
+  border: 1px solid #aabd9c;
+}
+
+.booking-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #2d5a35;
+}
+
+.booking-check {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2d5a35;
+  color: #fffef9;
+  font-size: 16px;
 }
 
 .game-actions .hint {

@@ -1,38 +1,14 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
-import { api, ApiError, message } from './api.ts';
-import { rememberPlayer, savedPlayer, selectPlayer } from './player.ts';
+import { api, message, onUnauthorized } from './api.ts';
+import { clearLegacyPlayer, readSession, restoreReturnPath } from './auth.ts';
+import type { Session } from './auth.ts';
+import { AuthScreen } from './AuthScreen.tsx';
 import { gameDate, timeRange } from './format.ts';
 import type { Game, Player } from './types.ts';
 import { Attendance, ErrorNotice, GameStatus } from './ui.tsx';
 import { CreateGame } from './CreateGame.tsx';
 import { GameDetails } from './GameDetails.tsx';
-
-function PlayerSelection({ onSelect }: { onSelect: (player: Player) => void }) {
-  const [name, setName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    setBusy(true); setError('');
-    try { onSelect(await selectPlayer(name.trim())); }
-    catch (error) { setError(message(error)); }
-    finally { setBusy(false); }
-  }
-  return <section className="welcome">
-    <div className="court" aria-hidden="true"><div className="court-line" /><svg className="ball" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="currentColor" /><g fill="none" stroke="#f6f5ef" strokeWidth="2"><path d="M50 3C36 19 32 37 50 50C69 52 86 69 89 77M50 50C40 67 24 73 9 73" /><path d="M64 6C48 20 47 34 58 43M78 13C65 25 60 38 64 48M3 55C20 57 35 54 41 39M4 37C20 41 30 38 37 28M31 93C38 76 51 66 66 65M53 97C55 83 64 75 78 76" /></g></svg><span className="court-label">GOOD PEOPLE. GREAT GAMES.</span></div>
-    <div className="welcome-copy"><p className="eyebrow">A little less group chat</p><h1>More time<br />on court.</h1>
-      <p className="intro">Find the next game. Count yourself in.<br />Bring a friend along.</p>
-      <form onSubmit={submit}><label htmlFor="player-name">What’s your name?</label>
-        <input id="player-name" name="name" autoComplete="name" autoCapitalize="words" placeholder="Your player name" value={name} onChange={event => setName(event.target.value)} minLength={3} maxLength={50} required disabled={busy} aria-describedby="name-help" />
-        <p id="name-help" className="hint">Use your exact player name to return, or a new name to join. 3–50 characters.</p>
-        {error && <ErrorNotice error={error} />}
-        <button className="primary wide" disabled={busy || name.trim().length < 3}>{busy ? 'Finding your player…' : 'Let’s play →'}</button>
-      </form><p className="privacy-note">No password in v1.0. Choosing a name is not secure authentication. Anyone can select an existing player.</p>
-    </div>
-  </section>;
-}
+import { PlayerAvatar } from './PlayerAvatar.tsx';
 
 function UpcomingGames() {
   const [games, setGames] = useState<Game[]>([]);
@@ -62,38 +38,81 @@ function UpcomingGames() {
 }
 
 export function App() {
-  const [player, setPlayer] = useState<Player | null>(savedPlayer);
-  const [restoring, setRestoring] = useState(() => savedPlayer() !== null);
-  const [restoreError, setRestoreError] = useState('');
-  const [storageWarning, setStorageWarning] = useState('');
-  const [restoreRevision, setRestoreRevision] = useState(0);
+  const [session, setSession] = useState<Session | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
+  const [revision, setRevision] = useState(0);
+
   useEffect(() => {
-    const saved = savedPlayer();
-    if (!saved) { setRestoring(false); return; }
-    let active = true;
-    setRestoring(true); setRestoreError('');
-    api.findPlayer(saved.name).then(current => {
-      if (!active) return;
-      if (current.playerId !== saved.playerId) {
-        rememberPlayer(null); setPlayer(null);
-      } else setPlayer(current);
+    clearLegacyPlayer();
+    return onUnauthorized(() => {
+      setSession({ status: 'signed-out' });
+      setChecking(false);
+      setNotice('Your session has expired. Please sign in again.');
+    });
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setChecking(true); setError('');
+    readSession(controller.signal).then(next => {
+      if (controller.signal.aborted) return;
+      if (next.status !== 'signed-out') restoreReturnPath();
+      setSession(next);
     }).catch(error => {
-      if (!active) return;
-      if (error instanceof ApiError && error.status === 404) { rememberPlayer(null); setPlayer(null); }
-      else setRestoreError(message(error));
-    }).finally(() => { if (active) setRestoring(false); });
-    return () => { active = false; };
-  }, [restoreRevision]);
-  function choosePlayer(next: Player | null) {
-    if (!rememberPlayer(next)) setStorageWarning('Your browser could not save this player. You may need to choose your name again after reloading.');
-    else setStorageWarning('');
-    setPlayer(next); setRestoreError('');
+      if (!controller.signal.aborted) setError(message(error));
+    }).finally(() => { if (!controller.signal.aborted) setChecking(false); });
+    return () => controller.abort();
+  }, [revision]);
+
+  async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true); setError('');
+    try {
+      await api.logout();
+      setSession({ status: 'signed-out' });
+      setNotice('You’ve signed out.');
+    } catch (error) { setError(message(error)); }
+    finally { setSigningOut(false); }
   }
-  return <div className="app-shell"><header className="site-header"><a className="brand" href="/" aria-label="Jump Beyond Friends home"><span className="brand-mark" aria-hidden="true">jbf<span>↗</span></span><span>JUMP BEYOND<br />FRIENDS</span></a>
-    {player && <button className="player-switch" disabled={restoring} onClick={() => choosePlayer(null)}><span className="avatar" aria-hidden="true">{player.name.slice(0, 1).toUpperCase()}</span><span>{player.name}<small>Switch player</small></span></button>}
-  </header><main>{storageWarning && <p className="notice" role="status">{storageWarning}</p>}
-    {restoring ? <p className="loading" role="status">Getting your player ready…</p> : restoreError ? <ErrorNotice error={restoreError} retry={() => setRestoreRevision(value => value + 1)} /> : player ? <Page player={player} /> : <PlayerSelection onSelect={choosePlayer} />}
-  </main><footer className="site-footer"><span>VOLLEYBALL, TOGETHER.</span><span>Jump Beyond Friends · v1.0</span></footer></div>;
+
+  const player = session?.status === 'signed-in' ? session.player : null;
+  return (
+    <div className="app-shell">
+      <header className="site-header">
+        <a className="brand" href="/" aria-label="Jump Beyond Friends home"><span className="brand-mark" aria-hidden="true">jbf<span>↗</span></span><span>JUMP BEYOND<br />FRIENDS</span></a>
+        {session && session.status !== 'signed-out' && (
+          <div className="account-controls">
+            {player && (
+              <div className="account-identity">
+                <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} />
+                <span className="account-name"><small>Signed in as</small>{player.name}</span>
+              </div>
+            )}
+            <button className="sign-out" type="button" disabled={checking || signingOut} aria-busy={signingOut} onClick={() => void signOut()}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 5H5v14h4M14 8l4 4-4 4M9 12h9" />
+              </svg>
+              {signingOut ? 'Signing out…' : 'Sign out'}
+            </button>
+          </div>
+        )}
+      </header>
+      <main>
+        {notice && <p className="notice" role="status">{notice}</p>}
+        {error && <ErrorNotice error={error} retry={() => setRevision(value => value + 1)} />}
+        {checking ? <p className="loading" role="status">Checking your sign-in…</p>
+          : player ? <Page player={player} />
+          : session && <AuthScreen key={session.status} needsEnrollment={session.status === 'enrollment-required'} onEnrolled={player => {
+            setSession(current => current?.status === 'enrollment-required' ? { status: 'signed-in', player } : current);
+            setNotice(''); setError('');
+          }} />}
+      </main>
+      <footer className="site-footer"><span>VOLLEYBALL, TOGETHER.</span><span>Jump Beyond Friends · v1.0</span></footer>
+    </div>
+  );
 }
 
 // Three pages use ordinary URLs. Vite's SPA fallback preserves shared game links.

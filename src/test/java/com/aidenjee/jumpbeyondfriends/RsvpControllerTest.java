@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,16 +21,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static com.aidenjee.jumpbeyondfriends.TestGoogleUsers.googleUser;
 import com.aidenjee.jumpbeyondfriends.exception.BusinessConflictException;
 import com.aidenjee.jumpbeyondfriends.player.PlayerRepository;
 import com.aidenjee.jumpbeyondfriends.rsvp.GameRsvpSummary;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpController;
+import com.aidenjee.jumpbeyondfriends.rsvp.RsvpPlayerResponse;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpService;
 import com.aidenjee.jumpbeyondfriends.rsvp.RsvpStatus;
-import com.aidenjee.jumpbeyondfriends.rsvp.RsvpPlayerResponse;
-
-import static com.aidenjee.jumpbeyondfriends.TestGoogleUsers.googleUser;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 
 @WebMvcTest(RsvpController.class)
@@ -123,8 +122,8 @@ public class RsvpControllerTest {
     @Test
     void getRsvpsForGameShouldReturnPlayerNamesAndStatuses() throws Exception {
         when(rsvpService.getRsvpsForGameId(3L)).thenReturn(List.of(
-            new RsvpPlayerResponse(1L, "Player A", RsvpStatus.GOING),
-            new RsvpPlayerResponse(2L, "Player B", RsvpStatus.MAYBE)
+            new RsvpPlayerResponse(1L, "Player A", "placeholder", RsvpStatus.GOING),
+            new RsvpPlayerResponse(2L, "Player B", "placeholder", RsvpStatus.MAYBE)
         ));
 
         mockMvc.perform(get("/api/games/3/rsvps").with(googleUser(TestGoogleUsers.GOOGLE_SUB)))

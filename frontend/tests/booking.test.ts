@@ -3,8 +3,19 @@ import assert from 'node:assert/strict';
 import { confirmBooking } from '../src/booking.ts';
 
 const originalFetch = globalThis.fetch;
-afterEach(() => { globalThis.fetch = originalFetch; });
+const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+  else Reflect.deleteProperty(globalThis, 'document');
+});
 const game = { gameId: 7, status: 'PROPOSED', goingCount: 3, threshold: 8, meetsAttendanceThreshold: false };
+
+function mockApi(handler: typeof fetch) {
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'XSRF-TOKEN=test-token' } });
+  globalThis.fetch = async (input, init) => input === '/api/csrf'
+    ? Response.json({ headerName: 'X-XSRF-TOKEN', token: 'masked' }) : handler(input, init);
+}
 
 test('fresh attendance warns below the minimum and dismissing makes no booking request', async () => {
   const calls: string[] = [];
@@ -20,10 +31,10 @@ test('fresh attendance warns below the minimum and dismissing makes no booking r
 
 test('accepting the warning records a booking after the fresh read', async () => {
   const calls: string[] = [];
-  globalThis.fetch = async (input, init) => {
+  mockApi(async (input, init) => {
     calls.push(`${init?.method || 'GET'} ${input}`);
     return init?.method === 'POST' ? new Response(null, { status: 204 }) : Response.json(game);
-  };
+  });
   assert.equal(await confirmBooking(7, () => true), true);
   assert.deepEqual(calls, ['GET /api/games/7', 'POST /api/games/7/book']);
 });
@@ -38,10 +49,10 @@ test('waits for the dialog decision before booking', async () => {
   let decide!: (confirmed: boolean) => void;
   let opened!: () => void;
   const dialogOpened = new Promise<void>(resolve => { opened = resolve; });
-  globalThis.fetch = async (input, init) => {
+  mockApi(async (input, init) => {
     calls.push(`${init?.method || 'GET'} ${input}`);
     return init?.method === 'POST' ? new Response(null, { status: 204 }) : Response.json(game);
-  };
+  });
   const booking = confirmBooking(7, () => new Promise<boolean>(resolve => {
     decide = resolve;
     opened();

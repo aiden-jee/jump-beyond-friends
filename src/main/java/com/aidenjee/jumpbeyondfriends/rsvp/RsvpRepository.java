@@ -36,6 +36,7 @@ public interface RsvpRepository extends JpaRepository<Rsvp, RsvpId>{
                 SELECT new com.aidenjee.jumpbeyondfriends.rsvp.RsvpPlayerResponse(
                         p.id,
                         p.name,
+                        p.avatarUrl,
                         r.status
                 )
                 FROM Rsvp r
